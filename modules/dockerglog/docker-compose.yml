@@ -1,0 +1,164 @@
+version: '3.7'
+services:
+  # MongoDB: https://hub.docker.com/_/mongo/
+  mongo1:
+    image: mongo
+    networks:
+      - glog-net
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 20s
+      placement:
+        constraints:
+          - node.hostname==master
+    volumes:
+      - mongodata1:/data/db
+      - mongoconfig1:/data/configdb
+    command: mongod -replSet rs0
+    ports:
+      - 27017:27017
+      
+  mongo2:
+    image: mongo
+    networks:
+      - glog-net
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 20s
+      placement:
+        constraints:
+          - node.hostname==worker0
+    volumes:
+      - mongodata2:/data/db
+      - mongoconfig2:/data/configdb
+    command: mongod -replSet rs0
+    ports:
+      - 27018:27017
+      
+  mongo3:
+    image: mongo
+    networks:
+      - glog-net
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 20s
+      placement:
+        constraints:
+          - node.hostname==worker1
+    volumes:
+      - mongodata3:/data/db
+      - mongoconfig3:/data/configdb
+    command: mongod -replSet rs0
+    ports:
+      - 27019:27017
+      
+  mongo4:
+    image: mongo
+    networks:
+      - glog-net
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 20s
+      placement:
+        constraints:
+          - node.hostname==worker2
+    volumes:
+      - mongodata4:/data/db
+      - mongoconfig4:/data/configdb
+    command: mongod -replSet rs0
+    ports:
+      - 27020:27017
+      
+  # Graylog: https://hub.docker.com/r/graylog/graylog/
+  graylogmaster:
+    image: graylog/graylog:3.0
+    env_file:
+      - ./configs/e.env
+    environment:
+      # CHANGE ME (must be at least 16 characters)! [must match exactly between whole cluster]
+      - GRAYLOG_PASSWORD_SECRET=somepasswordpepper
+      # Password: admin
+      - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+      - GRAYLOG_MONGODB_URI=mongodb://mongo1:27017,mongo2:27017,mongo3:27017,mongo4:27017/graylog?replicaSet=rs0
+      #- GRAYLOG_HTTP_ENABLE_TLS = true
+      - GRAYLOG_ELASTICSEARCH_DISCOVERY_ENABLED=false
+      - GRAYLOG_ELASTICSEARCH_COMPRESSION_ENABLED=false
+      - GRAYLOG_IS_MASTER=true
+    ports:
+      # Graylog web interface and REST API
+      - 9000:9000
+      - 12900:12900
+    networks:
+      - glog-net
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 20s
+      placement:
+        constraints:
+          - node.hostname==master
+          
+  graylogworker:
+    image: graylog/graylog:3.0
+    env_file:
+      - ./configs/w.env
+    environment:
+      # CHANGE ME (must be at least 16 characters)!
+      - GRAYLOG_PASSWORD_SECRET=somepasswordpepper
+      # Password: admin
+      - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+      - GRAYLOG_MONGODB_URI=mongodb://mongo1:27017,mongo2:27017,mongo3:27017,mongo4:27017/graylog?replicaSet=rs0
+      #- GRAYLOG_HTTP_ENABLE_TLS = true
+      - GRAYLOG_ELASTICSEARCH_DISCOVERY_ENABLED=false
+      - GRAYLOG_ELASTICSEARCH_COMPRESSION_ENABLED=false
+      - GRAYLOG_IS_MASTER=false
+    depends_on:
+      - graylogmaster
+    ports:
+      # GELF TCP
+      - 12201:12201
+      # GELF UDP
+      - 12201:12201/udp
+      # Syslog TCP
+      - 1514:1514
+      # Syslog UDP
+      - 1514:1514/udp
+      # Raw TCP
+      - 5555:5555
+      # Raw UDP
+      - 5555:5555/udp
+    networks:
+      - glog-net
+    deploy:
+      mode: global
+      restart_policy:
+        condition: any
+        delay: 20s
+
+networks:
+  glog-net:
+    driver: overlay
+    
+volumes:
+  mongodata1:
+  mongoconfig1:
+  mongodata2:
+  mongoconfig2:
+  mongodata3:
+  mongoconfig3:
+  mongodata4:
+  mongoconfig4:

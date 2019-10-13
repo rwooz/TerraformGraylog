@@ -1,0 +1,12 @@
+version: '3.7'
+services:
+    # Fluentd: https://hub.docker.com/r/bitnami/fluentd/
+    fluentd:
+        build: ./fluentd
+        ports:
+            #Client port
+            - 24226:24226
+            - 24226:24226/udp
+            #- 5140:5140
+        #volumes:
+        #  - ./data:/fluentd/log fluent/fluentd:v1.3-debian-1

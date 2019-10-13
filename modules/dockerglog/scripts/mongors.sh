@@ -1,0 +1,1 @@
+docker exec -it $(docker ps -qf name=mongo1) mongo --eval 'rs.initiate({ _id: "rs0", members: [{ _id: 1, host: "mongo1:27017" }, { _id: 2, host: "mongo2:27017" }, { _id: 3, host: "mongo3:27017" }, { _id: 4, host: "mongo4:27017" }], settings: { getLastErrorDefaults: { w: "majority", wtimeout: 30000 }}})'

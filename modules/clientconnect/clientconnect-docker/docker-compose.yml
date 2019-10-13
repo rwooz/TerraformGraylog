@@ -1,0 +1,5 @@
+version: '3.7'
+services:
+  # Ubuntu test client
+  client:
+    build: ./client
